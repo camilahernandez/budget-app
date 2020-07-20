@@ -7,6 +7,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.springboot.budgetapp.entity.IntervalType;
 import com.springboot.budgetapp.entity.UserBudget;
 import com.springboot.budgetapp.entity.UserEntity;
 import com.springboot.budgetapp.entity.UserTransactionEntity;
@@ -39,10 +40,21 @@ public class UserTransactionServices {
 		if(transaction.getTransactionDate() == null)
 			transaction.setTransactionDate(new Date());
 		transaction.setUser(user);
+		userTransactionRepository.save(transaction);
 		
 		//TODO validate limits and send email
+		List<UserTransactionEntity> sameDateTransactions = userTransactionRepository.findByTransactionDate(transaction.getTransactionDate());
+		UserBudget dailyBudget = userBudgetRepository.findByUserAndInterval(user, IntervalType.DAILY);
+		Long sum = 0L;
+		if(sameDateTransactions != null) {
+			 sum = sameDateTransactions
+					.stream()
+					.mapToLong(UserTransactionEntity::getAmount)
+					.sum();
+		}
+		if(sum >= dailyBudget.getMaxLimit())
+			System.out.println("send email notification");
 		
-		userTransactionRepository.save(transaction);
 	}
 	
 	public void createUser (UserEntity user) {
@@ -61,7 +73,4 @@ public class UserTransactionServices {
 		}
 		
 	}
-	
-	
-	
 }
